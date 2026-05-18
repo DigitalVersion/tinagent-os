@@ -1,0 +1,26 @@
+[project]
+name = "tinagent-os"
+version = "0.1.0"
+description = "Turn any Kubuntu machine into an MCP endpoint for AI agents"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+keywords = ["mcp", "agent", "kde", "kubuntu", "desktop-automation", "ai"]
+
+dependencies = [
+    "mcp[cli]",
+    "fastmcp",
+    "pydbus",       # AT-SPI accessibility tree
+    "websockets",   # CDP browser control
+]
+
+[project.scripts]
+tinagent-mcp = "mcp_server:main"
+
+[project.urls]
+Homepage = "https://github.com/DigitalVersion/tinagent-os"
+Issues = "https://github.com/DigitalVersion/tinagent-os/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
