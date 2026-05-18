@@ -1,16 +1,24 @@
 # TinAgentOS
 
-**A Kubuntu-based OS distribution + MCP server that turns any machine into a remote AI agent workstation.**
+**The best environment for humans and AI agents to share a machine — equally.**
 
-Plug in a machine. Boot. Your AI agent has eyes, hands, a browser, and a microphone — accessible from anywhere via MCP.
+Boot once. Both you and your agent have full access to the same desktop:
+you via keyboard and mouse, the agent via MCP.
+When you're tired, the agent works. When the agent is done, you take over.
+No scheduling. No handoff ceremony. Just a machine that's always ready for whoever needs it.
 
 ---
 
 ## Why this exists
 
-Most "computer use" setups require cloud VMs, proprietary APIs, or brittle VNC hacks.
+Most "computer use" setups treat agents as second-class citizens — sandboxed, screenshot-dependent, burning tokens just to see what's on screen.
 
-TinAgentOS is different: a self-hosted, open-source stack where **you own the hardware** and **the agent owns the machine**. Built on KDE Plasma + Wayland — the most accessible desktop stack on Linux — with every layer chosen for reliability over cleverness.
+TinAgentOS flips the model:
+
+- **Accessibility-first** — the agent reads the UI as structured data (AT-SPI2), not pixels. No screenshot → no token flood → no context overflow.
+- **Human-ready** — same KDE Plasma desktop you already know. Sit down and use it normally.
+- **Self-hosted** — your hardware, your data, no cloud dependency.
+- **Token-efficient by design** — `screen://accessibility` costs a fraction of a screenshot. Use it first, screenshot only when structure isn't enough.
 
 ---
 
@@ -134,18 +142,15 @@ file_task(instruction, dir?)   # filesystem tasks
 ### Option A — Fresh install (recommended)
 
 1. Download the latest TinAgentOS ISO *(coming soon — v0.1 build in progress)*
-2. Flash to USB, boot, follow setup
-3. On first login, run:
-   ```bash
-   tailscale up --auth-key=tskey-...
-   uv run mcp_server.py
-   ```
+2. Flash to USB → boot → create your user account
+3. Done. The MCP server starts automatically on login.
 
 ### Option B — Bootstrap on existing Kubuntu 24.04
 
 ```bash
 wget https://raw.githubusercontent.com/DigitalVersion/tinagent-os/main/install/bootstrap.sh
 sudo AGENT_USER=$USER bash bootstrap.sh
+# reboot
 ```
 
 ### Connect your agent
@@ -161,6 +166,9 @@ Add to your MCP config:
   }
 }
 ```
+
+That's it. No cloud account. No API key for the OS itself. No special agent runtime.
+The machine is now a shared workspace — use it yourself or let your agent use it, interchangeably.
 
 ---
 
@@ -223,6 +231,23 @@ tinagent-os/
 └── install/
     └── bootstrap.sh     # Full system setup script
 ```
+
+---
+
+## Token efficiency
+
+Screenshots are expensive. One 1080p PNG ≈ 1,000–2,000 tokens. A page of 10 interactions = context blown.
+
+TinAgentOS prioritizes structured data over pixels:
+
+| Task | ❌ Expensive | ✅ Efficient |
+|------|-------------|-------------|
+| Read page content | `browser_screenshot()` → OCR | `browser_get_text()` or `browser://page-source` |
+| Find a button | screenshot + vision | `screen_find_element("Submit")` → coordinates |
+| Check app state | `screen_screenshot()` | `screen://accessibility` → JSON tree |
+| Read clipboard | screenshot | `system://clipboard` |
+
+**Rule of thumb:** reach for `screen://accessibility` first. Use screenshots only when visual layout matters (images, charts, captchas).
 
 ---
 
