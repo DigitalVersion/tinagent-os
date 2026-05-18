@@ -55,13 +55,13 @@ CDP :9222   Wayland      AT-SPI2       + pathlib
 | **KDE Plasma + Wayland** | Desktop | Best accessibility (AT-SPI2) support on Linux. Wayland = no X11 hacks |
 | **dbus-broker** | IPC | Replaces dbus-daemon. Faster, more reliable, better for headless agents |
 | **ydotool** | Keyboard/mouse | Works on Wayland (xdotool doesn't). Controls input at kernel level via uinput |
-| **wl-clipboard** | Clipboard | `wl-copy`/`wl-paste` — Wayland-native. `type_text` pastes via clipboard, not key-by-key (safe for Unicode/Vietnamese) |
+| **wl-clipboard** | Clipboard | `wl-copy`/`wl-paste` — Wayland-native. `type_text` pastes via clipboard, not key-by-key (safe for Unicode/emoji) |
 | **Chrome CDP** | Browser | Full programmatic control: click, type, screenshot, JS eval, file upload — no Playwright overhead |
 | **AT-SPI2 + pydbus** | Screen reading | Reads UI state as structured data — far cheaper than screenshot+OCR for most tasks |
 | **PipeWire virtual audio** | Audio | Virtual speaker/mic loopback: agent can play TTS, record output, without physical hardware |
 | **grim** | Screenshots | Wayland-native screen capture. Faster than scrot on Wayland |
-| **RustDesk** | Remote access | Self-hostable remote desktop. Human can take over or observe the agent |
 | **watchdog** | Reliability | Hardware watchdog: machine auto-reboots if agent crashes everything |
+| **uv** | Python runtime | Fast, isolated Python env. No pip, no venv ceremony |
 
 ---
 
@@ -139,11 +139,13 @@ file_task(instruction, dir?)   # filesystem tasks
 
 ## Getting started
 
-### Option A — Fresh install (recommended)
+### Option A — ISO (v0.1)
 
-1. Download the latest TinAgentOS ISO *(coming soon — v0.1 build in progress)*
-2. Flash to USB → boot → create your user account
-3. Done. The MCP server starts automatically on login.
+1. Download `tinagent-os-0.1.iso` from [Releases](https://github.com/DigitalVersion/tinagent-os/releases)
+2. Flash to USB: `dd if=tinagent-os-0.1.iso of=/dev/sdX bs=4M status=progress`
+3. Boot → autologin as `tintin` → first-boot setup runs automatically
+4. Fill in your API key: `~/.config/agentos/config.json`
+5. Start the MCP server: `uv run mcp_server.py`
 
 ### Option B — Bootstrap on existing Kubuntu 24.04
 
@@ -172,7 +174,127 @@ The machine is now a shared workspace — use it yourself or let your agent use 
 
 ---
 
-## Config reference
+## What bootstrap.sh configures
+
+Everything is automated. After running bootstrap, your machine has:
+
+### Never sleep, never lock
+
+```
+/etc/systemd/logind.conf.d/tinagent-nosleep.conf
+  HandleLidSwitch=ignore          # close lid → nothing happens
+  IdleAction=ignore               # idle → nothing happens
+
+/etc/systemd/sleep.conf.d/tinagent-nosleep.conf
+  AllowSuspend=no
+  AllowHibernation=no
+```
+
+KDE-level lock/screensaver disabled on first login via `~/.tinagent-firstrun.sh`.
+
+### Autologin (SDDM)
+
+```
+/etc/sddm.conf.d/autologin.conf
+  User=<AGENT_USER>
+  Session=plasmawayland
+```
+
+### Accessibility (AT-SPI2)
+
+```
+/etc/profile.d/tinagent-accessibility.sh
+  QT_ACCESSIBILITY=1
+  QT_LINUX_ACCESSIBILITY_ALWAYS_ON=1
+  GTK_MODULES=gail:atk-bridge
+  GNOME_ACCESSIBILITY=1
+  YDOTOOL_SOCKET=/run/ydotoold.socket
+```
+
+Enables AT-SPI2 system-wide so `screen_get_accessibility_tree()` works from session start.
+
+### ydotool (Wayland input daemon)
+
+```
+/etc/udev/rules.d/80-ydotool.rules     → uinput device permissions
+/etc/systemd/system/ydotoold.service   → starts ydotoold on boot
+```
+
+`ydotoold` runs as root, exposes socket at `/run/ydotoold.socket` with group `input` access.
+
+### PipeWire virtual audio
+
+```
+/etc/pipewire/pipewire.conf.d/10-virtual-audio.conf
+```
+
+Creates:
+- `virtual-speaker` (Audio/Sink) — agent plays audio here
+- `virtual-mic` (Audio/Source/Virtual) — loopback from speaker
+- loopback module connecting them
+
+No physical audio hardware required. `audio_play()` and `audio_record()` work out of the box.
+
+### Hardware watchdog
+
+```
+/etc/watchdog.conf
+  watchdog-timeout = 60
+  interval = 10
+
+/etc/sysctl.conf
+  kernel.panic = 10
+  kernel.panic_on_oops = 1
+```
+
+Machine auto-reboots within 70 seconds if the agent hangs everything.
+
+### polkit rules
+
+```
+/etc/polkit-1/rules.d/49-tinagent.rules
+```
+
+Members of the `input` group (which includes `AGENT_USER`) can manage login sessions and network without a password prompt.
+
+### tmpfs mounts
+
+```
+/etc/fstab
+  tmpfs /tmp                           size=2G
+  tmpfs ~/.cache/google-chrome         size=1G
+```
+
+Chrome cache in RAM — no SSD wear, fast cold starts.
+
+### Chrome cleanup cron
+
+```
+/etc/cron.d/tinagent-cleanup
+  0 */12 * * *  pkill -9 -f chrome.*renderer
+```
+
+Kills orphaned Chrome renderer processes every 12 hours.
+
+### Journal limits
+
+```
+/etc/systemd/journald.conf.d/tinagent.conf
+  SystemMaxUse=500M
+  MaxRetentionSec=1month
+```
+
+### NTP
+
+```
+/etc/systemd/timesyncd.conf.d/tinagent.conf
+  NTP=time.google.com
+  FallbackNTP=pool.ntp.org
+```
+
+---
+
+## Agent config reference
 
 After bootstrap, edit `~/.config/agentos/config.json`:
 
@@ -194,7 +316,8 @@ After bootstrap, edit `~/.config/agentos/config.json`:
 }
 ```
 
-Chrome runtime command (auto-started by bootstrap):
+Start Chrome with CDP enabled (run once, leave running):
+
 ```bash
 google-chrome \
   --remote-debugging-port=9222 \
@@ -202,6 +325,13 @@ google-chrome \
   --force-renderer-accessibility \
   --no-sandbox \
   --user-data-dir=~/.config/chrome-agent-profile
+```
+
+Then start the MCP server:
+
+```bash
+cd ~/tinagent-os
+uv run mcp_server.py
 ```
 
 ---
