@@ -97,16 +97,21 @@ jobs:
           sudo mount --bind /dev/pts "$ROOT/dev/pts"
 
           sudo cp install/bootstrap.sh "$ROOT/tmp/bootstrap.sh"
+          sudo cp install/setup-browser.sh "$ROOT/home/$AGENT_USER/setup-browser.sh"
           sudo chmod +x "$ROOT/tmp/bootstrap.sh"
 
           # AGENT_USER controls the username created in the ISO.
           # IN_CHROOT is auto-detected by bootstrap.sh via systemctl check
           # (no systemd in chroot → skip all systemctl start commands).
+          # SKIP_BROWSER=1 — Chrome cannot be redistributed in OS images (ToS).
+          # Users run ~/setup-browser.sh after first boot to install it themselves.
           sudo chroot "$ROOT" bash -c "
             export AGENT_USER='$AGENT_USER'
             export DEBIAN_FRONTEND=noninteractive
+            export SKIP_BROWSER=1
             bash /tmp/bootstrap.sh
             rm /tmp/bootstrap.sh
+            chown $AGENT_USER:$AGENT_USER /home/$AGENT_USER/setup-browser.sh
           "
 
           # CRITICAL: unmount ALL virtual filesystems before mksquashfs.
@@ -221,12 +226,15 @@ jobs:
 Built from Kubuntu 24.04.4 LTS.
 
 **Included:**
-- Chromium (CDP on :9222, open source)
 - uv (Python runtime)
 - Tailscale
 - ydotool (Wayland input daemon)
 - PipeWire virtual audio (virtual speaker + mic loopback)
-- KDE Plasma 6 + Wayland
+- KDE Plasma 5.27 + Wayland
+- RustDesk (remote access)
+
+**Note:** Chrome is not bundled (ToS prohibits redistribution in OS images).
+Run \`sudo bash ~/setup-browser.sh\` after first boot — takes ~1 min.
 
 **Flash to USB:**
 \`\`\`bash
@@ -235,8 +243,8 @@ dd if=$ISO_NAME of=/dev/sdX bs=4M status=progress
 
 **After boot:**
 1. Login as \`$AGENT_USER\` (autologin)
-2. Edit \`~/.config/agentos/config.json\` — fill in your OpenRouter API key
-3. Start Chromium: \`chromium-agent &\`
+2. Install Chrome: \`sudo bash ~/setup-browser.sh\` → reboot
+3. Edit \`~/.config/agentos/config.json\` — fill in your OpenRouter API key
 4. Start MCP server: \`cd ~/tinagent-os && uv run mcp_server.py\`
 
 **Connect your agent:** add \`http://<machine-ip>:8765/sse\` to your MCP config." \

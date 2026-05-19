@@ -144,8 +144,13 @@ file_task(instruction, dir?)   # filesystem tasks
 1. Download `tinagent-os-0.1.iso` from [Releases](https://github.com/DigitalVersion/tinagent-os/releases)
 2. Flash to USB: `dd if=tinagent-os-0.1.iso of=/dev/sdX bs=4M status=progress`
 3. Boot → autologin as `tintin` → first-boot setup runs automatically
-4. Fill in your API key: `~/.config/agentos/config.json`
-5. Start the MCP server: `uv run mcp_server.py`
+4. Install Chrome (ISO ships without it — Chrome ToS prohibits redistribution in OS images):
+   ```bash
+   sudo bash ~/setup-browser.sh
+   # Reboot or log out → Chrome autostarts on next login with CDP on :9222
+   ```
+5. Fill in your API key: `~/.config/agentos/config.json`
+6. Start the MCP server: `cd ~/tinagent-os && uv run mcp_server.py`
 
 ### Option B — Bootstrap on existing Kubuntu 24.04
 

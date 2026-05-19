@@ -36,25 +36,26 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y \
   python3-pip python3-venv \
   watchdog openssh-server curl wget
 
-# Chromium (open source — redistributable, same CDP API as Chrome)
-# Kubuntu 24.04 ships Chromium as a snap. We ensure it's installed and
-# configure it to launch with CDP enabled via a wrapper script.
-if ! $IN_CHROOT; then
-  snap install chromium 2>/dev/null || true
-fi
-# CDP launcher wrapper — agent calls this to start Chromium with debugging port
-cat > /usr/local/bin/chromium-agent << 'WRAPPER'
+# Browser (optional — skip in ISO builds, user runs setup-browser.sh post-boot)
+# Set SKIP_BROWSER=1 to omit Chrome (e.g. GitHub Actions ISO build).
+if [[ "${SKIP_BROWSER:-0}" != "1" ]]; then
+  wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+    -O /tmp/chrome.deb
+  DEBIAN_FRONTEND=noninteractive apt-get install -y /tmp/chrome.deb
+  rm /tmp/chrome.deb
+  # CDP wrapper installed here; also installed by setup-browser.sh post-boot
+  cat > /usr/local/bin/chrome-agent << 'WRAPPER'
 #!/bin/bash
-PROFILE="${CHROMIUM_PROFILE:-$HOME/.config/chromium-agent-profile}"
-exec /snap/bin/chromium \
+exec google-chrome \
   --remote-debugging-port=9222 \
   --remote-allow-origins='*' \
   --force-renderer-accessibility \
   --no-sandbox \
-  --user-data-dir="$PROFILE" \
+  --user-data-dir="${CHROME_PROFILE:-$HOME/.config/chrome-agent-profile}" \
   "$@"
 WRAPPER
-chmod +x /usr/local/bin/chromium-agent
+  chmod +x /usr/local/bin/chrome-agent
+fi
 
 # uv
 curl -LsSf https://astral.sh/uv/install.sh | sh
