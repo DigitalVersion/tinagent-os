@@ -1,0 +1,258 @@
+name: Build TinAgentOS ISO
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      agent_user:
+        description: 'Default agent username baked into ISO'
+        default: 'tintin'
+        required: false
+
+env:
+  KUBUNTU_URL: https://cdimage.ubuntu.com/kubuntu/releases/24.04.2/release/kubuntu-24.04.4-desktop-amd64.iso
+  AGENT_USER: ${{ github.event.inputs.agent_user || 'tintin' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      # ── 0. Checkout ────────────────────────────────────────────────────────
+      - uses: actions/checkout@v4
+
+      # ── 1. Free disk space ────────────────────────────────────────────────
+      # Standard runners have ~14 GB free. We need ~20 GB for the build.
+      # This reclaims ~10 GB from pre-installed tools we don't need.
+      - name: Free disk space
+        run: |
+          echo "Before:" && df -h /
+          sudo rm -rf \
+            /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /opt/hostedtoolcache/CodeQL /usr/local/share/boost \
+            /usr/lib/jvm /usr/lib/mono /usr/share/swift \
+            /usr/local/.ghcup /usr/share/haskell
+          sudo apt-get clean
+          docker image prune -af 2>/dev/null || true
+          echo "After:" && df -h /
+
+      # ── 2. Install build tools ────────────────────────────────────────────
+      - name: Install tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            squashfs-tools xorriso \
+            grub-pc-bin grub-efi-amd64-bin \
+            mtools dosfstools \
+            wget curl rsync
+
+      # ── 3. Download and cache Kubuntu ISO ─────────────────────────────────
+      - name: Cache Kubuntu ISO
+        id: cache-iso
+        uses: actions/cache@v4
+        with:
+          path: kubuntu.iso
+          key: kubuntu-24.04.4-desktop-amd64
+
+      - name: Download Kubuntu ISO
+        if: steps.cache-iso.outputs.cache-hit != 'true'
+        run: |
+          wget -q --show-progress -O kubuntu.iso "$KUBUNTU_URL"
+          ls -lh kubuntu.iso
+
+      # ── 4. Extract ISO and squashfs ───────────────────────────────────────
+      - name: Extract ISO
+        run: |
+          mkdir -p iso/mnt iso/custom iso/squashfs-root
+          sudo mount -o loop,ro kubuntu.iso iso/mnt
+          # Copy all ISO files except the original squashfs (we'll replace it)
+          sudo rsync -a --exclude=/casper/filesystem.squashfs iso/mnt/ iso/custom/
+          echo "Extracting squashfs (~3 minutes)..."
+          sudo unsquashfs -d iso/squashfs-root iso/mnt/casper/filesystem.squashfs
+          sudo umount iso/mnt
+
+          # Extract EFI partition image from original ISO BEFORE deleting it.
+          # Offsets from: xorriso -indev kubuntu.iso -report_el_torito as_mkisofs
+          # Update these if switching to a different Kubuntu version.
+          echo "Extracting EFI boot image from original ISO..."
+          sudo dd if=kubuntu.iso bs=512 skip=9357424 count=10160 of=efi.img 2>/dev/null
+          ls -lh efi.img
+
+          # Free ISO from disk — no longer needed (~4.7 GB)
+          rm -f kubuntu.iso
+          echo "Disk after extraction:" && df -h /
+
+      # ── 5. Chroot bootstrap ───────────────────────────────────────────────
+      - name: Bootstrap system in chroot
+        run: |
+          ROOT="$(pwd)/iso/squashfs-root"
+
+          # Bind mounts needed by apt/dpkg inside chroot
+          sudo mount --bind /proc    "$ROOT/proc"
+          sudo mount --bind /sys     "$ROOT/sys"
+          sudo mount --bind /dev     "$ROOT/dev"
+          sudo mount --bind /dev/pts "$ROOT/dev/pts"
+
+          sudo cp install/bootstrap.sh "$ROOT/tmp/bootstrap.sh"
+          sudo chmod +x "$ROOT/tmp/bootstrap.sh"
+
+          # AGENT_USER controls the username created in the ISO.
+          # IN_CHROOT is auto-detected by bootstrap.sh via systemctl check
+          # (no systemd in chroot → skip all systemctl start commands).
+          sudo chroot "$ROOT" bash -c "
+            export AGENT_USER='$AGENT_USER'
+            export DEBIAN_FRONTEND=noninteractive
+            bash /tmp/bootstrap.sh
+            rm /tmp/bootstrap.sh
+          "
+
+          # CRITICAL: unmount ALL virtual filesystems before mksquashfs.
+          # If /proc stays mounted, mksquashfs reads /proc/kcore (kernel memory
+          # virtual file — appears infinite) and hangs forever at 0% progress.
+          sudo umount -lf "$ROOT/dev/pts" || true
+          sudo umount -lf "$ROOT/dev"     || true
+          sudo umount -lf "$ROOT/sys"     || true
+          sudo umount -lf "$ROOT/proc"    || true
+
+          # Verify all clean
+          sudo mount | grep squashfs-root && echo "WARNING: mounts still active!" || echo "All mounts clean."
+
+      # ── 6. Clean chroot for distribution ──────────────────────────────────
+      - name: Clean chroot
+        run: |
+          ROOT="$(pwd)/iso/squashfs-root"
+
+          # apt cache and lists are not needed in the live ISO.
+          # Removing them shrinks the squashfs by ~150 MB compressed,
+          # which is critical because xorriso rejects squashfs >= 4 GiB.
+          sudo rm -rf "$ROOT/var/cache/apt/archives"/*.deb
+          sudo rm -rf "$ROOT/var/lib/apt/lists"/*
+          sudo mkdir -p "$ROOT/var/lib/apt/lists/partial"
+
+          # Pre-baked SSH host keys must be removed — every machine that boots
+          # from this ISO must have UNIQUE host keys for SSH security.
+          # tinagent-sshkeys.service (installed by bootstrap.sh) regenerates
+          # them on first boot via ssh-keygen -A.
+          sudo rm -f "$ROOT/etc/ssh/ssh_host_"*
+
+          echo "Cleaned. Root size: $(sudo du -sh $ROOT | cut -f1)"
+
+      # ── 7. Repack squashfs ────────────────────────────────────────────────
+      - name: Repack squashfs (zstd)
+        run: |
+          ROOT="$(pwd)/iso/squashfs-root"
+          SQ="$(pwd)/iso/custom/casper/filesystem.squashfs"
+          sudo rm -f "$SQ"
+
+          echo "Repacking with zstd (~10 minutes)..."
+          sudo mksquashfs "$ROOT" "$SQ" \
+            -comp zstd \
+            -e boot proc sys dev run tmp \
+            -noappend
+
+          SIZE=$(stat -c "%s" "$SQ")
+          LIMIT=$((4 * 1024 * 1024 * 1024))
+          echo "squashfs: $(du -sh $SQ | cut -f1) ($SIZE bytes)"
+
+          # xorriso hard limit: squashfs must be < 4 GiB.
+          # If this fails, add more cleanup in the previous step.
+          if [ "$SIZE" -ge "$LIMIT" ]; then
+            echo "ERROR: squashfs is ${SIZE} bytes, limit is ${LIMIT} (4 GiB)"
+            exit 1
+          fi
+
+          printf "$(sudo du -sx --block-size=1 $ROOT | cut -f1)" \
+            | sudo tee iso/custom/casper/filesystem.size
+
+          # Free squashfs-root (~8 GB) — not needed for xorriso
+          sudo rm -rf "$ROOT"
+          echo "Disk before xorriso:" && df -h /
+
+      # ── 8. Build bootable ISO ─────────────────────────────────────────────
+      - name: Build ISO with xorriso
+        run: |
+          CUSTOM="$(pwd)/iso/custom"
+          TAG="${{ github.ref_name || 'dev' }}"
+          OUT="$(pwd)/tinagent-os-${TAG}.iso"
+
+          # MBR: use grub-pc-bin's hybrid boot image.
+          # This is equivalent to extracting the first 16 sectors from the
+          # original Kubuntu ISO — cleaner since no partial download needed.
+          MBR="/usr/lib/grub/i386-pc/boot_hybrid.img"
+
+          sudo xorriso -as mkisofs \
+            -r -V "TinAgentOS_${TAG}" \
+            -o "$OUT" \
+            -J -joliet-long \
+            --grub2-mbr "$MBR" \
+            --protective-msdos-label \
+            -partition_cyl_align off \
+            -partition_offset 16 \
+            --mbr-force-bootable \
+            -append_partition 2 28732ac11ff8d211ba4b00a0c93ec93b efi.img \
+            -appended_part_as_gpt \
+            -iso_mbr_part_type a2a0d0ebe5b9334487c068b6b72699c7 \
+            -c "/boot.catalog" \
+            -b "/boot/grub/i386-pc/eltorito.img" \
+            -no-emul-boot -boot-load-size 4 -boot-info-table --grub2-boot-info \
+            -eltorito-alt-boot \
+            -e "--interval:appended_partition_2:::appended_partition_2" \
+            -no-emul-boot \
+            "$CUSTOM"
+
+          ls -lh "$OUT"
+          echo "ISO_PATH=$OUT" >> "$GITHUB_ENV"
+          echo "ISO_NAME=tinagent-os-${TAG}.iso" >> "$GITHUB_ENV"
+
+      # ── 9. Publish ────────────────────────────────────────────────────────
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          gh release create "$TAG" \
+            --title "TinAgentOS $TAG" \
+            --notes "## TinAgentOS $TAG
+
+Built from Kubuntu 24.04.4 LTS.
+
+**Included:**
+- Google Chrome (CDP on :9222)
+- uv (Python runtime)
+- Tailscale
+- ydotool (Wayland input daemon)
+- PipeWire virtual audio (virtual speaker + mic loopback)
+- KDE Plasma 6 + Wayland
+
+**Flash to USB:**
+\`\`\`bash
+dd if=$ISO_NAME of=/dev/sdX bs=4M status=progress
+\`\`\`
+
+**After boot:**
+1. Login as \`$AGENT_USER\` (autologin)
+2. Edit \`~/.config/agentos/config.json\` — fill in your OpenRouter API key
+3. Start Chrome: \`google-chrome --remote-debugging-port=9222 --no-sandbox &\`
+4. Start MCP server: \`cd ~/tinagent-os && uv run mcp_server.py\`
+
+**Connect your agent:** add \`http://<machine-ip>:8765/sse\` to your MCP config." \
+            --draft 2>/dev/null || true
+
+          gh release upload "$TAG" "$ISO_PATH" --clobber
+
+      - name: Build summary
+        run: |
+          {
+            echo "## TinAgentOS Build"
+            echo "| | |"
+            echo "|---|---|"
+            echo "| ISO | \`$ISO_NAME\` |"
+            echo "| Size | $(ls -lh "$ISO_PATH" | awk '{print $5}') |"
+            echo "| Agent user | \`$AGENT_USER\` |"
+            echo "| Base | Kubuntu 24.04.4 LTS |"
+            echo "| squashfs | zstd |"
+          } >> "$GITHUB_STEP_SUMMARY"
