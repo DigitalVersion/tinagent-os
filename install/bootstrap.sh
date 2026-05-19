@@ -21,8 +21,8 @@ locale-gen en_US.UTF-8 2>/dev/null || true
 
 # ── 2. Remove bloat ───────────────────────────────────────────────────────────
 if ! $IN_CHROOT; then
-  snap remove --purge firefox  2>/dev/null || true
-  snap remove --purge chromium 2>/dev/null || true
+  snap remove --purge firefox 2>/dev/null || true
+  # Chromium snap is kept — it's our browser (open source, redistributable)
 fi
 DEBIAN_FRONTEND=noninteractive apt-get purge -y \
   plasma-discover update-notifier unattended-upgrades \
@@ -36,11 +36,25 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y \
   python3-pip python3-venv \
   watchdog openssh-server curl wget
 
-# Google Chrome
-wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
-  -O /tmp/chrome.deb
-DEBIAN_FRONTEND=noninteractive apt-get install -y /tmp/chrome.deb
-rm /tmp/chrome.deb
+# Chromium (open source — redistributable, same CDP API as Chrome)
+# Kubuntu 24.04 ships Chromium as a snap. We ensure it's installed and
+# configure it to launch with CDP enabled via a wrapper script.
+if ! $IN_CHROOT; then
+  snap install chromium 2>/dev/null || true
+fi
+# CDP launcher wrapper — agent calls this to start Chromium with debugging port
+cat > /usr/local/bin/chromium-agent << 'WRAPPER'
+#!/bin/bash
+PROFILE="${CHROMIUM_PROFILE:-$HOME/.config/chromium-agent-profile}"
+exec /snap/bin/chromium \
+  --remote-debugging-port=9222 \
+  --remote-allow-origins='*' \
+  --force-renderer-accessibility \
+  --no-sandbox \
+  --user-data-dir="$PROFILE" \
+  "$@"
+WRAPPER
+chmod +x /usr/local/bin/chromium-agent
 
 # uv
 curl -LsSf https://astral.sh/uv/install.sh | sh

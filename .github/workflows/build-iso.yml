@@ -221,7 +221,7 @@ jobs:
 Built from Kubuntu 24.04.4 LTS.
 
 **Included:**
-- Google Chrome (CDP on :9222)
+- Chromium (CDP on :9222, open source)
 - uv (Python runtime)
 - Tailscale
 - ydotool (Wayland input daemon)
@@ -236,7 +236,7 @@ dd if=$ISO_NAME of=/dev/sdX bs=4M status=progress
 **After boot:**
 1. Login as \`$AGENT_USER\` (autologin)
 2. Edit \`~/.config/agentos/config.json\` — fill in your OpenRouter API key
-3. Start Chrome: \`google-chrome --remote-debugging-port=9222 --no-sandbox &\`
+3. Start Chromium: \`chromium-agent &\`
 4. Start MCP server: \`cd ~/tinagent-os && uv run mcp_server.py\`
 
 **Connect your agent:** add \`http://<machine-ip>:8765/sse\` to your MCP config." \

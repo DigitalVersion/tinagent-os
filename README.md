@@ -56,7 +56,7 @@ CDP :9222   Wayland      AT-SPI2       + pathlib
 | **dbus-broker** | IPC | Replaces dbus-daemon. Faster, more reliable, better for headless agents |
 | **ydotool** | Keyboard/mouse | Works on Wayland (xdotool doesn't). Controls input at kernel level via uinput |
 | **wl-clipboard** | Clipboard | `wl-copy`/`wl-paste` — Wayland-native. `type_text` pastes via clipboard, not key-by-key (safe for Unicode/emoji) |
-| **Chrome CDP** | Browser | Full programmatic control: click, type, screenshot, JS eval, file upload — no Playwright overhead |
+| **Chromium CDP** | Browser | Full programmatic control: click, type, screenshot, JS eval, file upload — no Playwright overhead. Chromium = open source, redistributable |
 | **AT-SPI2 + pydbus** | Screen reading | Reads UI state as structured data — far cheaper than screenshot+OCR for most tasks |
 | **PipeWire virtual audio** | Audio | Virtual speaker/mic loopback: agent can play TTS, record output, without physical hardware |
 | **grim** | Screenshots | Wayland-native screen capture. Faster than scrot on Wayland |
@@ -312,19 +312,14 @@ After bootstrap, edit `~/.config/agentos/config.json`:
   "downloads_dir": "~/agent-downloads",
   "workspace_dir": "~/agent-workspace",
   "retry": { "max": 3, "delay_sec": 2 },
-  "chrome_profile": "~/.config/chrome-agent-profile"
+  "chrome_profile": "~/.config/chromium-agent-profile"
 }
 ```
 
-Start Chrome with CDP enabled (run once, leave running):
+Start Chromium with CDP enabled (run once, leave running):
 
 ```bash
-google-chrome \
-  --remote-debugging-port=9222 \
-  --remote-allow-origins=* \
-  --force-renderer-accessibility \
-  --no-sandbox \
-  --user-data-dir=~/.config/chrome-agent-profile
+chromium-agent   # wrapper installed by bootstrap.sh
 ```
 
 Then start the MCP server:
