@@ -1,7 +1,7 @@
 """
 Screen tools — screenshot, accessibility tree, element finder.
 
-Priority order (from TinAgentOS config): dbus > cdp > ydotool
+Priority order (from Tin OS config): dbus > cdp > ydotool
 For screen reading, prefer accessibility tree over pixel-based OCR.
 
 TODO (community): implement via scrot/grim (Wayland screenshot) + AT-SPI dbus.

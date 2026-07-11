@@ -1,11 +1,11 @@
 [project]
 name = "tinagent-os"
 version = "0.1.0"
-description = "Turn any Kubuntu machine into an MCP endpoint for AI agents"
+description = "Tin OS: a conversational operating layer for human and AI work"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
-keywords = ["mcp", "agent", "kde", "kubuntu", "desktop-automation", "ai"]
+keywords = ["mcp", "agent", "tin-os", "human-agentos", "kde", "kubuntu", "desktop-automation", "ai"]
 
 dependencies = [
     "mcp[cli]",

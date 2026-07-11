@@ -1,7 +1,7 @@
 """
 Audio tools — PipeWire virtual speaker/mic.
 
-TinAgentOS ships with a virtual audio loopback (virtual-speaker → virtual-mic).
+Tin OS ships with a virtual audio loopback (virtual-speaker → virtual-mic).
 Useful for TTS output or recording agent-generated audio.
 
 TODO (community): implement via paplay / pw-play / aplay.

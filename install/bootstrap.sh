@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# bootstrap.sh — TinAgentOS full system setup
+# bootstrap.sh — Tin OS full system setup
 # Run as root. Works in chroot (ISO build) or on live system.
 # Usage: sudo AGENT_USER=tintin bash bootstrap.sh
 
@@ -12,7 +12,7 @@ if [[ -z "${AGENT_USER:-}" ]]; then
   read -rp "Agent username (e.g. tintin): " AGENT_USER
 fi
 AGENT_HOME="/home/$AGENT_USER"
-echo ">>> Setting up TinAgentOS for user: $AGENT_USER (chroot=$IN_CHROOT)"
+echo ">>> Setting up Tin OS for user: $AGENT_USER (chroot=$IN_CHROOT)"
 
 # ── 1. Locale ─────────────────────────────────────────────────────────────────
 echo "LC_ALL=en_US.UTF-8" >> /etc/environment
@@ -256,7 +256,7 @@ if ! $IN_CHROOT; then
 fi
 
 echo ""
-echo "✅ TinAgentOS bootstrap complete."
+echo "✅ Tin OS bootstrap complete."
 echo ""
 echo "Next steps:"
 echo "  1. Reboot"

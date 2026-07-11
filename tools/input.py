@@ -1,7 +1,7 @@
 """
 Input tools — ydotool (Wayland) + wl-clipboard.
 
-IMPORTANT runtime notes (from TinAgentOS config):
+IMPORTANT runtime notes (from Tin OS config):
   type_text  → wl-copy 'text' && ydotool key ctrl+v   (NOT ydotool type)
   file upload → DOM.setFileInputFiles via CDP          (NOT click upload button)
 

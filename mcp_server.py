@@ -3,7 +3,7 @@
 # dependencies = ["mcp[cli]", "fastmcp"]
 # ///
 """
-TinAgentOS MCP Server — entry point.
+Tin OS MCP Server — entry point.
 
 Exposes a Kubuntu desktop machine as an MCP endpoint for AI agents.
 Transport: SSE (HTTP) so multiple remote agents can connect.

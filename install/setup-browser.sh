@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # setup-browser.sh — Install Google Chrome + wire it for agent use
-# Run as root (or with sudo) after first boot from TinAgentOS ISO.
+# Run as root (or with sudo) after first boot from Tin OS ISO.
 # Usage: sudo bash setup-browser.sh [AGENT_USER]
 #
 # What it does:
@@ -10,7 +10,7 @@
 #
 # Why Chrome instead of Chromium snap:
 #   Snap confinement blocks the AT-SPI2 dbus interface.
-#   TinAgentOS uses AT-SPI2 for screen_get_accessibility_tree() — snapped
+#   Tin OS uses AT-SPI2 for screen_get_accessibility_tree() — snapped
 #   Chromium breaks this core feature. Chrome (deb) does not.
 #
 # Chrome license note:
@@ -72,7 +72,7 @@ Exec=/usr/local/bin/chrome-agent --no-first-run
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
-Comment=Start Chrome with CDP enabled for TinAgentOS agent
+Comment=Start Chrome with CDP enabled for Tin OS agent
 EOF
 chown "$AGENT_USER:$AGENT_USER" "$AGENT_HOME/.config/autostart/chrome-agent.desktop"
 

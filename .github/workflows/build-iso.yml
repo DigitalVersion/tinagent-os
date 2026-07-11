@@ -1,4 +1,4 @@
-name: Build TinAgentOS ISO
+name: Build Tin OS ISO
 
 on:
   push:
@@ -189,7 +189,7 @@ jobs:
           MBR="/usr/lib/grub/i386-pc/boot_hybrid.img"
 
           sudo xorriso -as mkisofs \
-            -r -V "TinAgentOS_${TAG}" \
+            -r -V "TIN_OS_${TAG}" \
             -o "$OUT" \
             -J -joliet-long \
             --grub2-mbr "$MBR" \
@@ -220,8 +220,8 @@ jobs:
         run: |
           TAG="${{ github.ref_name }}"
           gh release create "$TAG" \
-            --title "TinAgentOS $TAG" \
-            --notes "## TinAgentOS $TAG
+            --title "Tin OS $TAG" \
+            --notes "## Tin OS $TAG
 
 Built from Kubuntu 24.04.4 LTS.
 
@@ -255,7 +255,7 @@ dd if=$ISO_NAME of=/dev/sdX bs=4M status=progress
       - name: Build summary
         run: |
           {
-            echo "## TinAgentOS Build"
+            echo "## Tin OS Build"
             echo "| | |"
             echo "|---|---|"
             echo "| ISO | \`$ISO_NAME\` |"
