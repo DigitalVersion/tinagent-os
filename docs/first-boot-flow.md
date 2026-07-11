@@ -56,6 +56,15 @@ Tin: I can inspect system health, manage local files and services, open browser
      tasks, start agent sessions, and ask before privileged actions.
 ```
 
+The dashboard should also show first-value buttons:
+
+```text
+[Start OpenCode Web]   free/default AI worker lane
+[Start Pi Web]         richer chat-to-agent lane, may need provider setup
+[Open Terminal]        raw tmux/WTerm/SSH/Mosh power path
+[Health Check]         inspect readiness and missing setup
+```
+
 A good first automatic health report:
 
 - hostname and LAN IP,
@@ -107,6 +116,7 @@ Implementation still needed:
 - QR display on first boot,
 - owner setup wizard,
 - local chat runtime,
+- dashboard start/open buttons for OpenCode Web and Pi Web,
 - cockpit panel,
 - approval broker,
 - durable job/evidence storage.

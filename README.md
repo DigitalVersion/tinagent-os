@@ -87,9 +87,16 @@ The live prototype that inspired this repo uses a working stack of Pi Web, Tin
 cockpit, tmux workers, Tailscale, and an ATP/Central Command job ledger. This repo
 is the path to make that experience installable and repeatable.
 
-See [`docs/first-boot-flow.md`](docs/first-boot-flow.md) for the target first-boot
-experience: install, connect to the network, open `tin.local` / `:2024`, and chat
-with the OS.
+See:
+
+- [`docs/first-boot-flow.md`](docs/first-boot-flow.md) for the target first-boot
+  experience: install, connect to the network, open `tin.local` / `:2024`, and
+  chat with the OS.
+- [`docs/product-philosophy.md`](docs/product-philosophy.md) for the product
+  principle: a fresh install must have a free first-value AI path, with OpenCode
+  Web as the default candidate.
+- [`docs/inventory-gap.md`](docs/inventory-gap.md) for the current gap between
+  the live Tin prototype and this installable repo.
 
 ---
 
@@ -249,6 +256,8 @@ Until these are fully implemented, do not market the MCP server as production-re
 - Install/run a local conversational UI on port `2024`.
 - Show the owner the LAN URL and QR code on first boot.
 - Make `http://tin.local` resolve on the LAN where possible.
+- Add dashboard buttons for **Start OpenCode Web** and **Start Pi Web** so a new
+  owner does not have to know terminal commands first.
 
 ### Phase 2 — first-boot owner setup
 
