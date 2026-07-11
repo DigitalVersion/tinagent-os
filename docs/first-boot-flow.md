@@ -1,144 +1,62 @@
 # Tin OS first-boot flow
 
-This document describes the product behavior Tin OS is being built toward.
+## Product promise
 
-## Goal
-
-A non-technical owner should be able to install or receive a Tin OS machine, put it
-on the network, open a browser, and talk to the OS.
+A new owner should be able to put a Tin OS machine on a trusted network, open a
+browser, and reach useful AI without learning terminal commands first.
 
 ```text
 Power on
-  -> connect to internet
-  -> see local address / QR code
-  -> open Tin in a browser
-  -> chat with the OS
-  -> let Tin inspect, execute, coordinate agents, and ask for approval
+  -> connect Ethernet or Wi-Fi
+  -> open the displayed LAN address
+  -> press Start OpenCode Web
+  -> begin working
 ```
 
-## Target user-visible flow
+## What the repository implements now
 
-### 1. First boot
-
-The machine boots into a locked-down but owner-accessible desktop/session.
-
-A full-screen welcome page shows:
-
-```text
-Tin OS is ready.
-Open this address on your phone or laptop:
-
-http://tin.local
-
-If that does not work:
-http://192.168.x.x:2024
-
-[QR code]
-```
-
-### 2. Owner setup
-
-The browser UI asks for:
-
-1. owner account / local password,
-2. model or API provider configuration,
-3. optional Tailscale/tailnet connection,
-4. basic machine name,
-5. consent for what Tin may control.
-
-### 3. First conversation
-
-The owner sees a chat UI:
-
-```text
-Owner: What can you do on this machine?
-Tin: I can inspect system health, manage local files and services, open browser
-     tasks, start agent sessions, and ask before privileged actions.
-```
-
-The dashboard should also show first-value buttons:
-
-```text
-[Start OpenCode Web]   free/default AI worker lane
-[Start Pi Web]         richer chat-to-agent lane, may need provider setup
-[Open Terminal]        raw tmux/WTerm/SSH/Mosh power path
-[Health Check]         inspect readiness and missing setup
-```
-
-A good first automatic health report:
-
-- hostname and LAN IP,
-- internet connectivity,
-- disk/RAM/CPU,
-- services running,
-- browser-control readiness,
-- Tailscale status,
-- pending setup items.
-
-### 4. Approval model
-
-Tin may do safe read-only work directly:
-
-- check status,
-- read non-secret system info,
-- list local services,
-- summarize logs.
-
-Tin must ask for approval before:
-
-- deleting files,
-- installing packages,
-- changing network/auth/security settings,
-- sending data outside the machine,
-- running privileged/root operations,
-- starting paid/external API actions.
-
-### 5. Cockpit
-
-The chat UI should include a cockpit panel:
-
-- live agent sessions,
-- active jobs,
-- blocked prompts,
-- last evidence,
-- machine health,
-- approval queue.
-
-## Current repo gap
-
-The current repo does not yet implement this full flow. It provides the OS/MCP
-substrate and installer work needed to get there.
-
-Implementation still needed:
-
-- web service on `:2024`,
-- mDNS/Avahi name `tin.local`,
-- QR display on first boot,
-- owner setup wizard,
-- local chat runtime,
-- dashboard start/open buttons for OpenCode Web and Pi Web,
-- cockpit panel,
-- approval broker,
-- durable job/evidence storage.
-
-## Development milestone definition
-
-Tin OS v0 becomes real when this command works on a clean Kubuntu machine:
+On an existing Debian/Ubuntu/Kubuntu machine:
 
 ```bash
-sudo AGENT_USER=$USER bash install/bootstrap.sh
+sudo AGENT_USER="$USER" bash install/install-tin.sh
+bash install/install-ai-apps.sh
 ```
 
-After reboot, the owner can open:
+The first command installs a boot-persistent Tin service and prints:
 
 ```text
-http://<machine-ip>:2024
+LAN:      http://192.168.x.x:8080
+Tailnet:  http://100.x.x.x:8080   # when Tailscale is present
+Local:    http://127.0.0.1:8080
 ```
 
-…and ask Tin:
+The second command installs OpenCode and optionally Pi Web. The dashboard then
+provides first-class start buttons for both applications.
 
-```text
-What is the status of this machine?
-```
+## First conversation/work session
 
-Tin must answer from live local state, not from a canned demo.
+The owner can choose:
+
+- **Start OpenCode Web** — free/default first-value AI lane.
+- **Start Pi Web** — configured-provider project/workspace lane.
+- **Create tmux session** — persistent power-user process lane.
+
+Tin shows live running/idle state and recent tmux output in the browser.
+
+## Safety boundary
+
+The submission runtime should be used only on a trusted LAN or private tailnet.
+It intentionally does not expose arbitrary shell commands through HTTP. Session
+startup is restricted to an explicit allowlist.
+
+## Still required for the appliance/ISO experience
+
+- A released ISO that has booted and passed the complete field gate.
+- QR code and address rendered on the physical first-boot screen.
+- `tin.local` discovery without manually reading an IP address.
+- Owner account/authentication and privileged-action approval.
+- Bundled WTerm browser terminal.
+- Update, backup, restore, and factory reset.
+
+The ISO workflow remains **experimental** until those claims are verified on a
+clean machine.

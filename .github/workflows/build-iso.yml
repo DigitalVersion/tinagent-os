@@ -244,10 +244,10 @@ dd if=$ISO_NAME of=/dev/sdX bs=4M status=progress
 **After boot:**
 1. Login as \`$AGENT_USER\` (autologin)
 2. Install Chrome: \`sudo bash ~/setup-browser.sh\` → reboot
-3. Edit \`~/.config/agentos/config.json\` — fill in your OpenRouter API key
-4. Start MCP server: \`cd ~/tinagent-os && uv run mcp_server.py\`
+3. Start the Tin OS dashboard: \`sudo AGENT_USER=\"\$USER\" bash ~/tinagent-os/install/install-tin.sh\`
+4. Install the AI apps: \`bash ~/tinagent-os/install/install-ai-apps.sh\`
 
-**Connect your agent:** add \`http://<machine-ip>:8765/sse\` to your MCP config." \
+**Open Tin OS:** the installer prints a LAN/tailnet URL on port 8080 — open it and press Start OpenCode Web." \
             --draft 2>/dev/null || true
 
           gh release upload "$TAG" "$ISO_PATH" --clobber

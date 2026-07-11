@@ -1,302 +1,238 @@
 # Tin OS
 
-**Install it, connect it to the internet, open a local URL, and talk to your computer.**
+**Install it. Connect it. Open a browser and work with your machine.**
 
-This repository is the build and bootstrap home for **Tin OS** (repo name: `tinagent-os`):
-a conversational operating layer for human + AI work.
+Tin OS is a self-hosted browser home for human + AI work. It gives a fresh machine
+an immediate AI path, persistent work sessions, and one place for the operator to
+see what is running.
 
-The intended first-run experience is simple:
+[Live public story and narrated pitch](https://agentdo.agency/tin) ·
+[Full 7-minute viewer](https://agentdo.agency/slides/viewer.html?src=human-agentos&title=Tin%20OS%20Pitch)
+
+![Tin OS running on a real phone](docs/assets/tin-os-phone-live.png)
+
+> The image above was captured from the live Tin fleet on a real phone. It is not
+> a mockup. The public crop intentionally excludes terminal contents and private
+> network details.
+
+## The idea
+
+Most AI systems begin with setup friction: create accounts, collect API keys,
+learn terminal commands, and manually keep processes alive.
+
+Tin OS reverses the order:
 
 ```text
 Install Tin OS
-  -> connect Ethernet or Wi-Fi
-  -> the machine shows: Open http://tin.local
-     or http://192.168.x.x:2024
-  -> the owner opens it from a phone or laptop
-  -> the owner chats with the OS
-  -> Tin can inspect the machine, run tasks, coordinate agents,
-     and ask for human approval before risky actions
+  -> connect the machine to a trusted network
+  -> open http://<machine-ip>:8080
+  -> press Start OpenCode Web
+  -> useful AI is available immediately
 ```
 
-Tin OS is not trying to replace the Linux kernel. It is a packaged operating
-environment on top of Linux/Kubuntu that makes **conversation the primary control
-surface** and AI agents first-class workers on the machine.
+- **OpenCode Web is the free first-value lane.** No Tin account is required.
+- **Pi Web is the configured-provider lane** for persistent projects and richer
+  agent workspaces.
+- **tmux sessions are the process layer.** Closing a browser does not kill work.
+- **The dashboard is the OS home.** Terminals are power tools, not the onboarding
+  experience.
 
----
+For the P4 challenge language: **Tin OS is a working Human-AgentOS** — an operating
+layer for assigning, running, observing, and governing human + AI work.
 
-## Product framing
+## Try the runnable submission snapshot
 
-Organizations are moving from “people using apps” to **people coordinating AI
-agents, tools, and machines**. Today that work is scattered across terminals,
-browser tabs, project management tools, remote desktops, and chatbots.
+Requirements: Linux, Python 3.11+, and tmux.
 
-Tin OS turns a machine into a local command center:
+```bash
+git clone https://github.com/DigitalVersion/tinagent-os.git
+cd tinagent-os
+python3 -m tin_os.server --host 0.0.0.0 --port 8080
+```
 
-- **Chat is the desktop** — the owner talks to the machine through a browser.
-- **Agents are applications** — coding agents, browser agents, local models, and
-  automation workers can be launched, observed, and stopped.
-- **Jobs are processes** — long-running work survives tab closes and reconnects.
-- **Human approval is the permission system** — destructive or irreversible work
-  must ask the owner first.
-- **Evidence is the audit log** — work is not “done” until the system records how
-  it was verified.
+Open:
 
-For hackathon / P4 language: **Tin OS is a working Human-AgentOS** — a system for
-assigning, governing, executing, and measuring human + AI work.
+```text
+http://127.0.0.1:8080
+# or from another device on a trusted network:
+http://<machine-ip>:8080
+```
 
----
+The runtime has **zero Python package dependencies**. It uses the standard library
+and calls tmux through fixed, auditable commands.
 
-## What exists in this repo today
+### Install as a boot service
 
-This repo currently contains the **OS substrate** for Tin OS:
+On Debian, Ubuntu, or Kubuntu:
 
-- Kubuntu-based ISO build workflow (`.github/workflows/build-iso.yml`).
-- System bootstrap script (`install/bootstrap.sh`) that configures:
-  - autologin,
-  - no sleep / no lock,
-  - Tailscale,
-  - SSH,
-  - ydotool for Wayland input,
-  - AT-SPI2 accessibility environment,
-  - PipeWire virtual audio,
-  - watchdog and journal limits,
-  - Chrome setup hook.
-- Post-boot browser setup (`install/setup-browser.sh`) for Chrome + CDP.
-- A Python MCP server skeleton (`mcp_server.py`) with modules for:
-  - browser control,
-  - keyboard/mouse input,
-  - screen/accessibility reading,
-  - system operations,
-  - audio.
+```bash
+sudo AGENT_USER="$USER" bash install/install-tin.sh
+```
 
-### Reality check
+The installer:
 
-This repo is **not yet** the complete Tin OS product.
+- installs Python, tmux, curl, and CA certificates,
+- copies the runtime to `/opt/tin-os`,
+- installs and starts `tin-os.service`,
+- prints the LAN and tailnet URLs,
+- verifies `/api/status` before reporting success.
 
-The following pieces are still to be implemented or integrated here:
+### Install the AI applications
 
-- Local Tin web door on `http://tin.local` / `http://<LAN-IP>:2024`.
-- Conversational UI bundled into the OS image.
-- First-boot wizard for owner account, network, model/API provider, and tailnet.
-- Durable job ledger / evidence layer.
-- Human approval broker for privileged or risky operations.
-- Built-in cockpit showing live agent sessions and machine state.
-- Full implementation of all MCP tools/resources; several are still stubs.
+Run as the desktop owner:
 
-The live prototype that inspired this repo uses a working stack of Pi Web, Tin
-cockpit, tmux workers, Tailscale, and an ATP/Central Command job ledger. This repo
-is the path to make that experience installable and repeatable.
+```bash
+bash install/install-ai-apps.sh
+```
 
-See:
+This installs:
 
-- [`docs/first-boot-flow.md`](docs/first-boot-flow.md) for the target first-boot
-  experience: install, connect to the network, open `tin.local` / `:2024`, and
-  chat with the OS.
-- [`docs/product-philosophy.md`](docs/product-philosophy.md) for the product
-  principle: a fresh install must have a free first-value AI path, with OpenCode
-  Web as the default candidate.
-- [`docs/inventory-gap.md`](docs/inventory-gap.md) for the current gap between
-  the live Tin prototype and this installable repo.
+- OpenCode through its official installer,
+- Pi Web through npm when a current Node.js/npm runtime is available.
 
----
+Return to Tin OS and press **Start OpenCode Web** or **Start Pi Web**. Tin starts
+the selected app in a persistent tmux session and opens its browser door.
 
-## Target architecture
+## What is built in this repository
+
+| Capability | Status | Evidence |
+| --- | --- | --- |
+| English-first Tin OS browser home | Built | `tin_os/web/` |
+| OpenCode Web detection and one-click start | Built | `POST /api/modules/opencode/start` |
+| Pi Web detection and one-click start | Built | `POST /api/modules/pi/start` |
+| Live tmux session inventory | Built | `GET /api/sessions` |
+| Last-output session cards | Built | tmux `capture-pane` |
+| Create/list/stop bounded sessions | Built | `/api/sessions` |
+| Boot-persistent systemd installation | Built | `install/install-tin.sh` |
+| Automated cold-start smoke test | Built | `scripts/smoke-test.sh` |
+| Kubuntu ISO build lane | Experimental | `.github/workflows/build-iso.yml` |
+| Multi-machine federation and WTerm | Live prototype, not packaged here yet | public pitch/screenshots |
+| Approval broker and durable job evidence | Roadmap | documented below |
+
+This table is deliberately strict. Planned functionality is not presented as built.
+
+## Architecture
 
 ```text
 Phone / laptop browser
         |
-        |  http://tin.local or http://<LAN-IP>:2024
+        |  http://<machine-ip>:8080
         v
-+----------------------------------------------------+
-| Tin Web Door                                       |
-| - chat with the OS                                 |
-| - live cockpit cards                               |
-| - owner approval prompts                           |
-+-------------------------+--------------------------+
-                          |
-                          v
-+----------------------------------------------------+
-| Tin Runtime                                        |
-| - local agent session                              |
-| - job ledger + evidence                            |
-| - worker/session manager                           |
-| - permission / approval broker                     |
-+------------+----------------+----------------------+
-             |                |
-             v                v
-+---------------------+   +--------------------------+
-| MCP / desktop tools |   | OS services              |
-| - browser CDP       |   | - Tailscale              |
-| - AT-SPI2 UI tree   |   | - SSH                    |
-| - ydotool input     |   | - systemd                |
-| - screenshots       |   | - watchdog               |
-| - audio loopback    |   | - browser autostart      |
-+---------------------+   +--------------------------+
-             |
-             v
-       Kubuntu / Linux base
++-----------------------------------------------+
+| Tin OS browser home                           |
+| OpenCode Web · Pi Web · persistent sessions   |
++----------------------+------------------------+
+                       |
+                       v
++-----------------------------------------------+
+| Tin runtime (Python standard library)         |
+| - module health/start API                     |
+| - bounded tmux session API                    |
+| - live output snapshots                       |
++----------------------+------------------------+
+                       |
+          +------------+-------------+
+          |                          |
+          v                          v
+  OpenCode Web :2023          Pi Web :2024
+          |
+          v
+  tmux + Linux services
 ```
 
----
+## Why tmux
 
-## Current developer quick start
+A browser tab is not a process manager. tmux lets the machine keep work alive when
+the operator closes a tab, changes networks, or reconnects from a phone.
 
-### Bootstrap an existing Kubuntu machine
+Tin exposes tmux state as an operator-friendly dashboard rather than asking a new
+user to learn tmux first.
 
-```bash
-wget https://raw.githubusercontent.com/DigitalVersion/tinagent-os/main/install/bootstrap.sh
-sudo AGENT_USER=$USER bash bootstrap.sh
-# reboot
-```
+## Security boundary
 
-Then install Chrome for the browser-control layer:
+This submission runtime intentionally has no public-internet authentication layer.
+It can create and stop local tmux sessions and launch installed AI web apps.
 
-```bash
-sudo bash install/setup-browser.sh "$USER"
-# reboot or log out/in
-curl -s http://localhost:9222/json/version
-```
+**Use it only on a trusted LAN or private tailnet. Do not publish port 8080, 2023,
+or 2024 to the public internet.**
 
-Start the current MCP server skeleton:
-
-```bash
-uv run mcp_server.py --host 0.0.0.0 --port 8765
-```
-
-Connect an MCP-capable agent to:
+The runtime does not expose an arbitrary shell-command API. Session startup is
+restricted to this allowlist:
 
 ```text
-http://<machine-ip>:8765/sse
+bash · opencode · pi · claude · codex
 ```
 
-That gives an external agent a path to the machine. The future Tin OS default is
-stronger: the owner opens `http://tin.local` / `:2024` and chats directly with the
-OS.
+The production roadmap adds owner authentication and a privileged approval broker
+before Tin becomes a general appliance.
 
----
+## P4 — Human-AgentOS fit
 
-## Building the ISO
+Tin OS directly demonstrates the execution/governance wedge of Human-AgentOS:
 
-The GitHub Actions workflow builds a Kubuntu-based ISO on tag push or manual
-workflow dispatch.
+1. **Who should do the work?** The operator selects an AI workspace or human terminal.
+2. **Can an AI agent do it?** OpenCode and Pi are first-class worker runtimes.
+3. **How should agents be selected?** The home screen separates free/default and
+   configured-provider lanes.
+4. **How do mixed teams collaborate?** Humans observe persistent sessions and step
+   in without killing agent work.
+5. **How is work measured?** The live system exposes running/idle/stopped state and
+   session evidence; durable outcome analytics are the next layer.
+
+## Repository map
+
+```text
+tinagent-os/
+├── tin_os/
+│   ├── server.py               # runnable Tin OS runtime
+│   └── web/                    # English-first browser home
+├── install/
+│   ├── install-tin.sh          # systemd installation
+│   ├── install-ai-apps.sh      # OpenCode + optional Pi Web
+│   ├── bootstrap.sh            # experimental Kubuntu/ISO substrate
+│   └── setup-browser.sh        # optional Chrome/CDP substrate
+├── scripts/
+│   ├── smoke-test.sh           # cold-start + tmux E2E test
+│   └── check-no-private-data.sh
+├── docs/
+│   ├── product-philosophy.md
+│   ├── first-boot-flow.md
+│   ├── inventory-gap.md
+│   └── assets/
+└── .github/workflows/build-iso.yml
+```
+
+## Verify
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+bash scripts/check-no-private-data.sh
+bash scripts/smoke-test.sh
 ```
 
-Important packaging constraints:
+Expected smoke result:
 
-- Chrome is **not bundled** in the ISO because Google Chrome is not redistributable
-  inside OS images. Users run `setup-browser.sh` after first boot.
-- Kubuntu 24.04 uses **KDE Plasma 5.27**, not Plasma 6.
-- The ISO build must keep `filesystem.squashfs` below the xorriso 4 GiB limit.
-- SSH host keys must be removed before packaging and regenerated on first boot.
+```text
+PASS: Tin OS cold-start runtime, static UI, status API, tmux create/list/delete
+```
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for ISO build gotchas.
+## Roadmap
 
----
-
-## MCP primitives planned for the substrate
-
-The MCP layer gives the local agent a body. The target primitives are:
-
-### Browser
-
-- navigate to a URL,
-- click/type/read DOM elements,
-- capture tab screenshots,
-- evaluate JavaScript,
-- upload files,
-- manage tabs.
-
-### Input
-
-- type text through clipboard paste,
-- press keyboard shortcuts,
-- click/move mouse,
-- scroll,
-- read/write clipboard.
-
-### Screen
-
-- full or regional screenshots,
-- AT-SPI2 accessibility tree,
-- active window metadata,
-- find UI elements by accessible label.
-
-### System
-
-- read system status,
-- list processes,
-- read/write files,
-- launch applications,
-- run bounded shell commands.
-
-### Audio
-
-- play audio through a virtual speaker,
-- record through a virtual microphone,
-- provide a TTS hook.
-
-Until these are fully implemented, do not market the MCP server as production-ready.
-
----
-
-## Roadmap to the real Tin OS experience
-
-### Phase 0 — truthful substrate
-
-- Keep this repo honest about what is built vs planned.
-- Build and test the Kubuntu bootstrap path.
-- Implement enough MCP tools to inspect and control the local machine.
-
-### Phase 1 — local Tin web door
-
-- Install/run a local conversational UI on port `2024`.
-- Show the owner the LAN URL and QR code on first boot.
-- Make `http://tin.local` resolve on the LAN where possible.
-- Add dashboard buttons for **Start OpenCode Web** and **Start Pi Web** so a new
-  owner does not have to know terminal commands first.
-
-### Phase 2 — first-boot owner setup
-
-- Configure owner account.
-- Configure internet and optional Tailscale.
-- Configure model/API provider.
-- Run a machine health check.
-
-### Phase 3 — cockpit + durable work
-
-- Show live agent cards and machine status.
-- Keep work alive across browser disconnects.
-- Add job/evidence tracking.
-
-### Phase 4 — approval and safety
-
-- Add a privileged broker for root/system actions.
-- Require human approval for destructive, irreversible, or external-send actions.
-- Add backup, restore, update, and factory reset.
-
-### Phase 5 — Tin Box
-
-- Ship Tin OS preinstalled on a mini PC or dedicated machine.
-- User plugs it in, connects to the network, scans the QR code, and starts talking.
-
----
+1. Bundle the dashboard and AI runtimes into the ISO lane.
+2. Show a QR code and local address on first boot.
+3. Add `tin.local` discovery.
+4. Package the live WTerm/tmux browser terminal.
+5. Add owner authentication and explicit privileged-action approval.
+6. Add durable job, evidence, handoff, backup, restore, and update layers.
+7. Ship a preinstalled **Tin Box** appliance.
 
 ## Name
 
-- Product name: **Tin OS**
-- Repository/package name: `tinagent-os`
-- Category language: **Human-AgentOS**
-
-A good one-line description:
+- Product: **Tin OS**
+- Repository/package: `tinagent-os`
+- Challenge category: **Human-AgentOS**
 
 > Tin OS turns a connected machine into a conversational command center for human
 > and AI work.
-
----
 
 ## License
 

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#090d13" />
+  <title>Tin OS</title>
+  <link rel="icon" href="/icon.svg" />
+  <link rel="stylesheet" href="/tin.css" />
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="#home"><img src="/icon.svg" alt=""/><span><strong>Tin OS</strong><small>Human + AI workspace</small></span></a>
+  <div class="status"><i id="live-dot"></i><span id="summary">Connecting…</span><code>v0.2</code></div>
+</header>
+<main>
+  <section class="hero" id="home">
+    <p class="eyebrow">CONVERSATIONAL OPERATING SYSTEM</p>
+    <h1>Your machine is ready to work with you.</h1>
+    <p class="lead">Start an AI workspace or inspect persistent work sessions from any browser on your private network.</p>
+    <div class="node-pill">Run on <strong id="node-name">this machine</strong><span>local node</span></div>
+  </section>
+
+  <section class="apps" aria-label="AI applications">
+    <article class="app-card primary">
+      <div class="app-top"><b class="app-icon oc">⬡</b><span class="badge free">FREE · NO ACCOUNT</span></div>
+      <h2>OpenCode Web</h2>
+      <p>The fastest first-value path on Tin OS. Install once, then open it and start working without account ceremony.</p>
+      <button onclick="startModule('opencode',this)">Start OpenCode Web <span>↗</span></button>
+      <small id="opencode-state">Checking runtime…</small>
+    </article>
+    <article class="app-card">
+      <div class="app-top"><b class="app-icon pi">π</b><span class="badge">AGENT WORKSPACE</span></div>
+      <h2>Pi Web</h2>
+      <p>Persistent projects, workspaces, tools, and conversations using your configured model provider.</p>
+      <button onclick="startModule('pi',this)">Start Pi Web <span>↗</span></button>
+      <small id="pi-state">Checking runtime…</small>
+    </article>
+    <article class="app-card">
+      <div class="app-top"><b class="app-icon term">›_</b><span class="badge">POWER TOOLS</span></div>
+      <h2>Persistent session</h2>
+      <p>Create a durable tmux workspace. The process keeps running after you close this browser.</p>
+      <button onclick="createSession()">Create tmux session <span>→</span></button>
+      <small>Attach locally with <code>tmux attach -t NAME</code></small>
+    </article>
+  </section>
+
+  <section class="operations" id="sessions">
+    <div class="section-head"><div><p class="eyebrow">LIVE OPERATIONS</p><h2>Sessions on this machine</h2><p>See what each worker is doing and recover its exact tmux session.</p></div><button class="add" onclick="createSession()">+ Add session</button></div>
+    <div class="toolbar"><input id="search" type="search" placeholder="Search sessions or output…" oninput="renderSessions()"/><button onclick="loadAll()">Refresh</button></div>
+    <div id="session-grid" class="session-grid"><div class="empty">Loading live sessions…</div></div>
+  </section>
+</main>
+<div id="toast" class="toast" role="status"></div>
+<script src="/app.js"></script>
+</body>
+</html>
